@@ -7,56 +7,58 @@ const server=http.createServer((req,res)=>{
 
     if(req.url==='/'){
         //read message first
-        fs.readFile('message.txt',(err,data)=>{
-        let message=data||"";
+        fs.readFile('message.txt','utf-8',(err,data)=>{
+        const messages = data ? data.split('\n').filter(m=>m.trim()!==''):[];
+
            res.setHeader('Content-type','text/html');
-           res.end(
-            `
-            <h2>Last Message:</h2>
-            <p>${message}</p>
+           res.end( `
+            <div>
+                <h2>Messages:</h2>
+                 <ul>
+                    ${messages.map(msg=>`<li>${msg}</li>`).join('')}
+                 </ul>
+            </div>
+
             <form action="/message" method="POST">
-            <label>Message:</label>
-            <input type="text" name="message"></input>
-            <button type="submit">Add</button>
-            </form>` 
-        );
+                <label>Message:</label>
+                <input type="text" name="message"></input>
+                <button type="submit">Add</button>
+            </form>
+            `);
         });
     }
-    else{
-        if(req.url==='/message'){
-            res.setHeader('Content-type','text/html');
-
+    else if(req.url==='/message' && method==='POST'){
             let body=[];
+            
             req.on('data',(chunks)=>{
                 body.push(chunks);
             });
 
             req.on('end',()=>{
-                let buffer=Buffer.concat(body);
-                let formData=buffer.toString();
-                const message=formData.split("=")[1];
+                const parsedBody=Buffer.concat(body).toString();//message=Hello
+                const message=parsedBody.split("=")[1];
 
-                fs.writeFile("message.txt",message,(err)=>{
+                // Read existing messages
+                fs.readFile('message.txt','utf-8',(err,data)=>{
+                    let oldMessages=data ? data:"";
+
+                    // Add new message at the TOP
+                    const updatedMessages=message + "\n" + oldMessages;
+
+                    fs.writeFile("message.txt",updatedMessages, (err)=>{
                     res.statusCode=302; //redirected
                     res.setHeader('Location','/');
                     res.end();
-                })
-            });
-        }
-        else{
-            if(req.url==='/read'){
-                //read from the file
-                fs.readFile('message.txt',(err,data)=>{
-                    res.end(
-                        `<h1>${data.toString()}</h1>`
-                    );
-                })
-            }
-
-        }
+                });
+            });       
+        });
     }
-})
+    else{
+        res.statusCode=404;
+        res.end("<h1>Page not found</h1>");     
+    }
+});
 
 server.listen(3000,()=>{
     console.log("Server is running")
-})
+});
