@@ -1,3 +1,5 @@
+SDE
+DataScience
 Fullstack
 Frontend
 Backend+dev
