@@ -6,17 +6,24 @@ const server=http.createServer((req,res)=>{
     const method=req.method;
 
     if(req.url==='/'){
-        //form
-        res.setHeader('Content-type','text/html');
-        res.end(
-            `<form action="/message" method="POST">
-            <label>Name:</label>
-            <input type="text" name="username"></input>
+        //read message first
+        fs.readFile('message.txt',(err,data)=>{
+        let message=data||"";
+           res.setHeader('Content-type','text/html');
+           res.end(
+            `
+            <h2>Last Message:</h2>
+            <p>${message}</p>
+            <form action="/message" method="POST">
+            <label>Message:</label>
+            <input type="text" name="message"></input>
             <button type="submit">Add</button>
-            </form>`  
-        )
-    }else{
-        if(req.url=='/message'){
+            </form>` 
+        );
+        });
+    }
+    else{
+        if(req.url==='/message'){
             res.setHeader('Content-type','text/html');
 
             let body=[];
@@ -26,27 +33,20 @@ const server=http.createServer((req,res)=>{
 
             req.on('end',()=>{
                 let buffer=Buffer.concat(body);
-                console.log(buffer);
-
                 let formData=buffer.toString();
-                console.log(formData);
+                const message=formData.split("=")[1];
 
-                const formValues=formData.split("=")[1];
-
-                fs.writeFile("formValues.txt",formValues,(err)=>{
+                fs.writeFile("message.txt",message,(err)=>{
                     res.statusCode=302; //redirected
                     res.setHeader('Location','/');
                     res.end();
-
                 })
             });
         }
         else{
-            if(req.url=='/read'){
+            if(req.url==='/read'){
                 //read from the file
-
-                fs.readFile('formValues.txt',(err,data)=>{
-                    console.log(data.toString());
+                fs.readFile('message.txt',(err,data)=>{
                     res.end(
                         `<h1>${data.toString()}</h1>`
                     );
